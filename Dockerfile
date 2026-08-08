@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the files
-COPY a.py .
+COPY app.py .
 
 # Command to run the Python script
 CMD ["python", "-u", "app.py"]
