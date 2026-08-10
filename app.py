@@ -35,10 +35,12 @@ def add_log(status, details):
 
 def fetch_json_with_browser():
     chrome_options = Options()
-    chrome_options.add_argument("--headless") 
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
     chrome_options.binary_location = "/usr/bin/chromium"
     
@@ -55,9 +57,18 @@ def fetch_json_with_browser():
         driver.set_page_load_timeout(60)
         
         driver.get(URL)
-        time.sleep(5) # Wait for InfinityFree security bypass
+        time.sleep(6) # Wait for InfinityFree security bypass
         
         page_source = driver.find_element(By.TAG_NAME, "body").text
+        
+        # If the first read isn't valid JSON yet (InfinityFree's JS challenge
+        # can occasionally take a bit longer), give it one more short wait
+        # and try again before giving up.
+        try:
+            json.loads(page_source)
+        except json.JSONDecodeError:
+            time.sleep(4)
+            page_source = driver.find_element(By.TAG_NAME, "body").text
         
         end_time = time.time() # Stop stopwatch
         time_taken = round(end_time - start_time, 2) # Calculate duration in seconds
@@ -213,6 +224,10 @@ def index():
 @app.route('/api/logs')
 def get_logs():
     return jsonify(bot_logs)
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "ok", "logs_recorded": len(bot_logs)})
 
 if __name__ == "__main__":
     # Start the bot thread
